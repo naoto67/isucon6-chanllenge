@@ -65,13 +65,13 @@ func newHtmlify(w http.ResponseWriter, r *http.Request, content string, keywords
 		return ""
 	}
 	re := regexp.MustCompile("(" + strings.Join(keywords, "|") + ")")
+	content = html.EscapeString(content)
 	content = re.ReplaceAllStringFunc(content, func(kw string) string {
 		u, err := r.URL.Parse(baseUrl.String() + "/keyword/" + pathURIEscape(kw))
 		panicIf(err)
 		link := fmt.Sprintf("<a href=\"%s\">%s</a>", u, html.EscapeString(kw))
 		return link
 	})
-	content = html.EscapeString(content)
 
 	return strings.Replace(content, "\n", "<br />\n", -1)
 }
