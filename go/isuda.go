@@ -43,21 +43,13 @@ var (
 
 func setName(w http.ResponseWriter, r *http.Request) error {
 	session := getSession(w, r)
-	userID, ok := session.Values["user_id"]
-	if !ok {
+	userID, id_ok := session.Values["user_id"]
+	userName, name_ok := session.Values["user_name"]
+	if !name_ok || !id_ok {
 		return nil
 	}
 	setContext(r, "user_id", userID)
-	row := db.QueryRow(`SELECT name FROM user WHERE id = ?`, userID)
-	user := User{}
-	err := row.Scan(&user.Name)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return errInvalidUser
-		}
-		panicIf(err)
-	}
-	setContext(r, "user_name", user.Name)
+	setContext(r, "user_name", userName)
 	return nil
 }
 
@@ -241,6 +233,7 @@ func loginPostHandler(w http.ResponseWriter, r *http.Request) {
 	panicIf(err)
 	session := getSession(w, r)
 	session.Values["user_id"] = user.ID
+	session.Values["user_name"] = user.Name
 	session.Save(r, w)
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -276,6 +269,7 @@ func registerPostHandler(w http.ResponseWriter, r *http.Request) {
 	userID := register(name, pw)
 	session := getSession(w, r)
 	session.Values["user_id"] = userID
+	session.Values["user_name"] = name
 	session.Save(r, w)
 	http.Redirect(w, r, "/", http.StatusFound)
 }
