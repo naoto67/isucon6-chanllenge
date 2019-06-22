@@ -3,10 +3,8 @@ CREATE TABLE entry (
     author_id BIGINT UNSIGNED NOT NULL,
     keyword VARCHAR(191) UNIQUE,
     description MEDIUMTEXT,
-    len SMALLINT,
     updated_at DATETIME NOT NULL,
-    created_at DATETIME NOT NULL,
-    KEY len_idx_on_entry(len)
+    created_at DATETIME NOT NULL
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 CREATE TABLE user (
