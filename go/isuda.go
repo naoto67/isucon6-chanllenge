@@ -18,7 +18,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Songmu/strrand"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -60,13 +59,6 @@ func setName(w http.ResponseWriter, r *http.Request) error {
 	}
 	setContext(r, "user_name", user.Name)
 	return nil
-}
-
-func authenticate(w http.ResponseWriter, r *http.Request) error {
-	if u := getContext(r, "user_id"); u != nil {
-		return nil
-	}
-	return errInvalidUser
 }
 
 func initializeHandler(w http.ResponseWriter, r *http.Request) {
@@ -236,16 +228,6 @@ func registerPostHandler(w http.ResponseWriter, r *http.Request) {
 	session.Values["user_id"] = userID
 	session.Save(r, w)
 	http.Redirect(w, r, "/", http.StatusFound)
-}
-
-func register(user string, pass string) int64 {
-	salt, err := strrand.RandomString(`....................`)
-	panicIf(err)
-	res, err := db.Exec(`INSERT INTO user (name, salt, password, created_at) VALUES (?, ?, ?, NOW())`,
-		user, salt, fmt.Sprintf("%x", sha1.Sum([]byte(salt+pass))))
-	panicIf(err)
-	lastInsertID, _ := res.LastInsertId()
-	return lastInsertID
 }
 
 func keywordByKeywordHandler(w http.ResponseWriter, r *http.Request) {
