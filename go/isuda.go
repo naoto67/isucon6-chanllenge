@@ -155,7 +155,9 @@ func keywordPostHandler(w http.ResponseWriter, r *http.Request) {
 	userID := getContext(r, "user_id").(int)
 	description := r.FormValue("description")
 
-	if isSpamContents(description) || isSpamContents(keyword) {
+	check := description + " " + keyword
+
+	if isSpamContents(check) {
 		http.Error(w, "SPAM!", http.StatusBadRequest)
 		return
 	}
