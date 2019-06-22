@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"regexp"
 	"runtime/debug"
 	"strings"
 )
@@ -64,14 +63,17 @@ func newHtmlify(w http.ResponseWriter, r *http.Request, content string, keywords
 	if content == "" {
 		return ""
 	}
-	re := regexp.MustCompile("(" + strings.Join(keywords, "|") + ")")
 	content = html.EscapeString(content)
-	content = re.ReplaceAllStringFunc(content, func(kw string) string {
-		u, err := r.URL.Parse(baseUrl.String() + "/keyword/" + pathURIEscape(kw))
+	var rep_data []string
+	for _, v := range keywords {
+		u, err := r.URL.Parse(baseUrl.String() + "/keyword/" + pathURIEscape(v))
 		panicIf(err)
-		link := fmt.Sprintf("<a href=\"%s\">%s</a>", u, html.EscapeString(kw))
-		return link
-	})
+		link := fmt.Sprintf("<a href=\"%s\">%s</a>", u, html.EscapeString(v))
+		rep_data = append(rep_data, v)
+		rep_data = append(rep_data, link)
+	}
+	replacer := strings.NewReplacer(rep_data...)
+	content = replacer.Replace(content)
 
 	return strings.Replace(content, "\n", "<br />\n", -1)
 }
