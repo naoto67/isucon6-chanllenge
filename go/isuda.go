@@ -17,7 +17,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"unicode/utf8"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
@@ -207,11 +206,11 @@ func keywordPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, err := db.Exec(`
-		INSERT INTO entry (author_id, keyword, description, len, created_at, updated_at)
-		VALUES (?, ?, ?, ?, NOW(), NOW())
+		INSERT INTO entry (author_id, keyword, description, created_at, updated_at)
+		VALUES (?, ?, ?, NOW(), NOW())
 		ON DUPLICATE KEY UPDATE
 		author_id = ?, description = ?, updated_at = NOW()
-	`, userID, keyword, description, utf8.RuneCountInString(keyword), userID, description)
+	`, userID, keyword, description, userID, description)
 	panicIf(err)
 	http.Redirect(w, r, "/", http.StatusFound)
 }
