@@ -88,7 +88,14 @@ func starsHandler(w http.ResponseWriter, r *http.Request) {
 func starsPostHandler(w http.ResponseWriter, r *http.Request) {
 	keyword := r.FormValue("keyword")
 	user := r.FormValue("user")
-	_, err := db.Exec(`INSERT INTO star (keyword, user_name, created_at) VALUES (?, ?, NOW())`, keyword, user)
+	err := db.QueryRow("SELECT id FROM entry WHERE keyword = ?", keyword)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			notFound(w)
+		}
+		return
+	}
+	_, err = db.Exec(`INSERT INTO star (keyword, user_name, created_at) VALUES (?, ?, NOW())`, keyword, user)
 	panicIf(err)
 
 	re.JSON(w, http.StatusOK, map[string]string{"result": "ok"})
