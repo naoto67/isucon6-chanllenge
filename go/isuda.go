@@ -252,7 +252,10 @@ func keywordByKeywordHandler(w http.ResponseWriter, r *http.Request) {
 		notFound(w)
 		return
 	}
-	e.Html = htmlify(w, r, e.Description)
+	keywords, err := getKeywords()
+	panicIf(err)
+
+	e.Html = newHtmlify(w, r, e.Description, keywords)
 	e.Stars = loadStars(e.Keyword)
 
 	re.HTML(w, http.StatusOK, "keyword", struct {
