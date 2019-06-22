@@ -6,7 +6,7 @@ import (
 
 func getKeywords() ([]string, error) {
 	rows, err := db.Query(`
-		SELECT keyword FROM entry
+		SELECT * FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC
 	`)
 	panicIf(err)
 	keywords := make([]string, 0, 500)
