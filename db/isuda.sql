@@ -4,7 +4,8 @@ CREATE TABLE entry (
     keyword VARCHAR(191) UNIQUE,
     description MEDIUMTEXT,
     updated_at DATETIME NOT NULL,
-    created_at DATETIME NOT NULL
+    created_at DATETIME NOT NULL,
+    KEY keyword_index_on_entry(keyword)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 CREATE TABLE user (
@@ -12,5 +13,6 @@ CREATE TABLE user (
     name VARCHAR(191) UNIQUE,
     salt VARCHAR(20),
     password VARCHAR(40),
-    created_at DATETIME NOT NULL
+    created_at DATETIME NOT NULL,
+    KEY keyword_index_on_user(name)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
