@@ -22,3 +22,21 @@ func getKeywords() ([]string, error) {
 
 	return keywords, nil
 }
+
+func getKeywordsAndCount(keywords []string) (int, error) {
+	rows, err := db.Query(`
+		SELECT keyword FROM entry
+	`)
+	panicIf(err)
+	var count int
+	for rows.Next() {
+		var keyword string
+		err := rows.Scan(&keyword)
+		if err != nil {
+			return count, err
+		}
+		keywords = append(keywords, regexp.QuoteMeta(keyword))
+		count++
+	}
+	return count, nil
+}

@@ -138,7 +138,8 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		panicIf(err)
 	}
 
-	keywords, err := getKeywords()
+	var keywords []string
+	totalEntries, err := getKeywordsAndCount(keywords)
 	panicIf(err)
 
 	entries := make([]*Entry, 0, 10)
@@ -151,13 +152,6 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		entries = append(entries, &e)
 	}
 	rows.Close()
-
-	var totalEntries int
-	row := db.QueryRow(`SELECT COUNT(*) FROM entry`)
-	err = row.Scan(&totalEntries)
-	if err != nil && err != sql.ErrNoRows {
-		panicIf(err)
-	}
 
 	lastPage := int(math.Ceil(float64(totalEntries) / float64(perPage)))
 	pages := make([]int, 0, 10)
