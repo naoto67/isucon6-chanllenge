@@ -130,6 +130,7 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 	entries := make([]*Entry, 0, 10)
 	// for stars query
 
+	entry_keywords := make([]string, 0, 10)
 	for rows.Next() {
 		e := Entry{}
 		err = rows.Scan(&e.ID, &e.AuthorID, &e.Keyword, &e.Description, &e.UpdatedAt, &e.CreatedAt)
@@ -137,8 +138,16 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		e.Html = newHtmlify(w, r, e.Description, keywords)
 		e.Stars = loadStars(e.Keyword)
 		entries = append(entries, &e)
+
+		entry_keywords = append(entry_keywords, "\""+e.Keyword+"\"")
 	}
 	rows.Close()
+
+	rows, err = db.Query(fmt.Sprintf("SELECT * FROM star WHERE keyword IN (%s)", strings.Join(entry_keywords, ",")))
+	if err != nil && err != sql.ErrNoRows {
+		panicIf(err)
+	}
+	defer rows.Close()
 
 	var totalEntries int
 	row := db.QueryRow(`SELECT COUNT(*) FROM entry`)
