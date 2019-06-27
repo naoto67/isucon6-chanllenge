@@ -129,16 +129,16 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 
 	entries := make([]*Entry, 0, 10)
 	// for stars query
-
 	entry_keywords := make([]string, 0, 10)
+	var map_entry map[string]*Entry
 	for rows.Next() {
 		e := Entry{}
 		err = rows.Scan(&e.ID, &e.AuthorID, &e.Keyword, &e.Description, &e.UpdatedAt, &e.CreatedAt)
 		panicIf(err)
 		e.Html = newHtmlify(w, r, e.Description, keywords)
-		e.Stars = loadStars(e.Keyword)
 		entries = append(entries, &e)
 
+		map_entry[e.Keyword] = &e
 		entry_keywords = append(entry_keywords, "\""+e.Keyword+"\"")
 	}
 	rows.Close()
@@ -148,6 +148,12 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		panicIf(err)
 	}
 	defer rows.Close()
+	for rows.Next() {
+		s := Star{}
+		err := rows.Scan(&s.ID, &s.Keyword, &s.UserName, &s.CreatedAt)
+		panicIf(err)
+		map_entry[s.Keyword].Stars = append(map_entry[s.Keyword].Stars, &s)
+	}
 
 	var totalEntries int
 	row := db.QueryRow(`SELECT COUNT(*) FROM entry`)
