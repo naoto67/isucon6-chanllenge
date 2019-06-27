@@ -142,12 +142,6 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	rows.Close()
 
-	rows, err = db.Query(fmt.Sprintf("SELECT * FROM star WHERE keyword IN (%s)", strings.Join(entry_keywords, ",")))
-	if err != nil && err != sql.ErrNoRows {
-		panicIf(err)
-	}
-	defer rows.Close()
-
 	var totalEntries int
 	row := db.QueryRow(`SELECT COUNT(*) FROM entry`)
 	err = row.Scan(&totalEntries)
