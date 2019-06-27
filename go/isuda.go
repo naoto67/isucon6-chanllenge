@@ -116,9 +116,6 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	page, _ := strconv.Atoi(p)
 
-	keywords, err := getKeywords()
-	panicIf(err)
-
 	rows, err := db.Query(fmt.Sprintf(
 		"SELECT id, author_id, keyword, description, updated_at, created_at FROM entry ORDER BY updated_at DESC LIMIT %d OFFSET %d",
 		perPage, perPage*(page-1),
@@ -136,7 +133,7 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		e := Entry{}
 		err = rows.Scan(&e.ID, &e.AuthorID, &e.Keyword, &e.Description, &e.UpdatedAt, &e.CreatedAt)
 		panicIf(err)
-		e.Html = newHtmlify(w, r, e.Description, keywords)
+		e.Html = newHtmlify(w, r, e.Description)
 		entries = append(entries, &e)
 		e.Stars = make([]*Star, 0, 10)
 
@@ -305,10 +302,7 @@ func keywordByKeywordHandler(w http.ResponseWriter, r *http.Request) {
 		notFound(w)
 		return
 	}
-	keywords, err := getKeywords()
-	panicIf(err)
-
-	e.Html = newHtmlify(w, r, e.Description, keywords)
+	e.Html = newHtmlify(w, r, e.Description)
 	e.Stars = loadStars(e.Keyword)
 
 	re.HTML(w, http.StatusOK, "keyword", struct {

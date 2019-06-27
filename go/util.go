@@ -59,18 +59,15 @@ func panicIf(err error) {
 	}
 }
 
-func newHtmlify(w http.ResponseWriter, r *http.Request, content string, keywords []string) string {
+func newHtmlify(w http.ResponseWriter, r *http.Request, content string) string {
 	if content == "" {
 		return ""
 	}
 	content = html.EscapeString(content)
 	var rep_data []string
-	for _, v := range keywords {
-		u, err := r.URL.Parse(baseUrl.String() + "/keyword/" + pathURIEscape(v))
-		panicIf(err)
-		link := fmt.Sprintf("<a href=\"%s\">%s</a>", u, html.EscapeString(v))
-		rep_data = append(rep_data, v)
-		rep_data = append(rep_data, link)
+	data, ok := repCache.Get("reps")
+	if ok {
+		rep_data = data.([]string)
 	}
 	replacer := strings.NewReplacer(rep_data...)
 	content = replacer.Replace(content)
