@@ -120,7 +120,7 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 	panicIf(err)
 
 	rows, err := db.Query(fmt.Sprintf(
-		"SELECT keyword, description FROM entry ORDER BY updated_at DESC LIMIT %d OFFSET %d",
+		"SELECT id, author_id, keyword, description, updated_at, created_at FROM entry ORDER BY updated_at DESC LIMIT %d OFFSET %d",
 		perPage, perPage*(page-1),
 	))
 	if err != nil && err != sql.ErrNoRows {
@@ -134,7 +134,7 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		e := Entry{}
-		err := rows.Scan(&e.Keyword, &e.Description)
+		err = rows.Scan(&e.ID, &e.AuthorID, &e.Keyword, &e.Description, &e.UpdatedAt, &e.CreatedAt)
 		panicIf(err)
 		e.Html = newHtmlify(w, r, e.Description, keywords)
 		e.Stars = loadStars(e.Keyword)
