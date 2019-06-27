@@ -137,6 +137,7 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		panicIf(err)
 		e.Html = newHtmlify(w, r, e.Description, keywords)
 		entries = append(entries, &e)
+		e.Stars = make([]*Stars, 0, 10)
 
 		map_entry[e.Keyword] = &e
 		entry_keywords = append(entry_keywords, "\""+e.Keyword+"\"")
