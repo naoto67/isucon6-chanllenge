@@ -130,7 +130,7 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 	entries := make([]*Entry, 0, 10)
 	// for stars query
 	entry_keywords := make([]string, 0, 10)
-	var map_entry map[string]*Entry
+	// var map_entry map[string]*Entry
 	for rows.Next() {
 		e := Entry{}
 		err = rows.Scan(&e.ID, &e.AuthorID, &e.Keyword, &e.Description, &e.UpdatedAt, &e.CreatedAt)
@@ -139,7 +139,6 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		entries = append(entries, &e)
 		e.Stars = make([]*Star, 0, 10)
 
-		map_entry[e.Keyword] = &e
 		entry_keywords = append(entry_keywords, "\""+e.Keyword+"\"")
 	}
 	rows.Close()
