@@ -129,7 +129,6 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 
 	entries := make([]*Entry, 0, 10)
 	// for stars query
-	var map_entry map[string]*Entry
 	entry_keywords := make([]string, 0, 10)
 
 	for rows.Next() {
@@ -139,8 +138,6 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		e.Html = newHtmlify(w, r, e.Description, keywords)
 		e.Stars = loadStars(e.Keyword)
 		entries = append(entries, &e)
-		map_entry[e.Keyword] = &e
-
 		entry_keywords = append(entry_keywords, e.Keyword)
 	}
 	rows.Close()
