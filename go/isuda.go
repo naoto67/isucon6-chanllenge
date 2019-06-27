@@ -116,6 +116,9 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	page, _ := strconv.Atoi(p)
 
+	keywords, err := getKeywords()
+	panicIf(err)
+
 	rows, err := db.Query(fmt.Sprintf(
 		"SELECT keyword, description FROM entry ORDER BY updated_at DESC LIMIT %d OFFSET %d",
 		perPage, perPage*(page-1),
@@ -124,19 +127,34 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		panicIf(err)
 	}
 
-	keywords, err := getKeywords()
-	panicIf(err)
-
 	entries := make([]*Entry, 0, 10)
+	// for stars query
+	var map_entry map[string]*Entry
+	entry_keywords := make([]string, 0, 10)
+
 	for rows.Next() {
 		e := Entry{}
 		err := rows.Scan(&e.Keyword, &e.Description)
 		panicIf(err)
 		e.Html = newHtmlify(w, r, e.Description, keywords)
-		e.Stars = loadStars(e.Keyword)
 		entries = append(entries, &e)
+		map_entry[e.Keyword] = &e
+
+		entry_keywords = append(entry_keywords, e.Keyword)
 	}
 	rows.Close()
+
+	rows, err = db.Query(fmt.Sprintf("SELECT * FROM star WHERE keyword IN (%s)", strings.Join(entry_keywords, ",")))
+	if err != nil && err != sql.ErrNoRows {
+		panicIf(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		s := Star{}
+		err := rows.Scan(&s.ID, &s.Keyword, &s.UserName, &s.CreatedAt)
+		panicIf(err)
+		map_entry[s.Keyword].Stars = append(map_entry[s.Keyword].Stars, &s)
+	}
 
 	var totalEntries int
 	row := db.QueryRow(`SELECT COUNT(*) FROM entry`)
