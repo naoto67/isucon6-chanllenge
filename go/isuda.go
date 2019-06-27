@@ -137,6 +137,7 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		err := rows.Scan(&e.Keyword, &e.Description)
 		panicIf(err)
 		e.Html = newHtmlify(w, r, e.Description, keywords)
+		e.Stars = loadStars(e.Keyword)
 		entries = append(entries, &e)
 		map_entry[e.Keyword] = &e
 
@@ -149,12 +150,6 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		panicIf(err)
 	}
 	defer rows.Close()
-	for rows.Next() {
-		s := Star{}
-		err := rows.Scan(&s.ID, &s.Keyword, &s.UserName, &s.CreatedAt)
-		panicIf(err)
-		map_entry[s.Keyword].Stars = append(map_entry[s.Keyword].Stars, &s)
-	}
 
 	var totalEntries int
 	row := db.QueryRow(`SELECT COUNT(*) FROM entry`)
