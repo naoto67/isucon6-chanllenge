@@ -498,6 +498,8 @@ func main() {
 		},
 	})
 
+	initializeCache()
+
 	r := mux.NewRouter()
 	r.UseEncodedPath()
 	r.HandleFunc("/", myHandler(topHandler))
