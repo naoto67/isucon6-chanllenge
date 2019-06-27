@@ -152,7 +152,9 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		s := Star{}
 		err := rows.Scan(&s.ID, &s.Keyword, &s.UserName, &s.CreatedAt)
 		panicIf(err)
-		map_entry[s.Keyword].Stars = append(map_entry[s.Keyword].Stars, &s)
+		var entry *Entry
+		entry = map_entry[s.Keyword]
+		entry.Stars = append(entry.Stars, &s)
 	}
 
 	var totalEntries int
