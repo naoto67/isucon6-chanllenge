@@ -17,10 +17,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
+	"github.com/patrickmn/go-cache"
 	"github.com/unrolled/render"
 )
 
@@ -476,6 +478,9 @@ func main() {
 
 	store = sessions.NewCookieStore([]byte(sessionSecret))
 
+	repCache = cache.New(5*time.Minute, 10*time.Minute)
+	initializeCache()
+
 	re = render.New(render.Options{
 		Directory: "views",
 		Funcs: []template.FuncMap{
@@ -497,8 +502,6 @@ func main() {
 			},
 		},
 	})
-
-	initializeCache()
 
 	r := mux.NewRouter()
 	r.UseEncodedPath()

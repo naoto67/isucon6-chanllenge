@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"html"
 	"net/url"
-	"time"
 
 	"github.com/patrickmn/go-cache"
 )
@@ -14,8 +13,6 @@ var (
 )
 
 func initializeCache() {
-	repCache = cache.New(5*time.Minute, 10*time.Minute)
-
 	rows, err := db.Query("SELECT keyword from entry")
 	panicIf(err)
 
