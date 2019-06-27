@@ -1,4 +1,4 @@
-all: isuda isutar
+all: isuda
 
 deps:
 
