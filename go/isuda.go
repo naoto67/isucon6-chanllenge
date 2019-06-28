@@ -41,6 +41,8 @@ var (
 	store   *sessions.CookieStore
 
 	errInvalidUser = errors.New("Invalid User")
+
+	splitter = "6eb3bc8ee3b13699ccd846"
 )
 
 func setName(w http.ResponseWriter, r *http.Request) error {
@@ -153,6 +155,7 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 			"SELECT id, author_id, keyword, description, updated_at, created_at FROM entry ORDER BY updated_at DESC LIMIT %d OFFSET %d",
 			perPage, perPage*(page-1),
 		))
+		contents := make([]string, 0, 10)
 		if err != nil && err != sql.ErrNoRows {
 			panicIf(err)
 		}
@@ -160,7 +163,8 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 			e := Entry{}
 			err = rows.Scan(&e.ID, &e.AuthorID, &e.Keyword, &e.Description, &e.UpdatedAt, &e.CreatedAt)
 			panicIf(err)
-			e.Html = newHtmlify(w, r, e.Description, keywords)
+			// e.Html = newHtmlify(w, r, e.Description, keywords)
+			contents = append(contents, e.Description)
 			entries = append(entries, &e)
 			e.Stars = make([]*Star, 0, 10)
 
@@ -169,6 +173,12 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		rows.Close()
 
+		mergedContents := strings.Join(contents, splitter)
+		mergedContents = newHtmlify(w, r, mergedContents, keywords)
+		contents = strings.Split(mergedContents, splitter)
+		for i := 0; i < len(contents); i++ {
+			entries[i].Html = contents[i]
+		}
 	}
 	setTopPages(entries)
 
