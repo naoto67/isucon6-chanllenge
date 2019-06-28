@@ -65,7 +65,6 @@ func newHtmlify(w http.ResponseWriter, r *http.Request, content string, keywords
 	if content == "" {
 		return ""
 	}
-	content = html.EscapeString(content)
 	var rep_data []string
 	for _, v := range keywords {
 		u, err := r.URL.Parse(baseUrl.String() + "/keyword/" + pathURIEscape(v))
