@@ -130,7 +130,7 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 	map_entry = map[string]*Entry{}
 
 	data, ok := entryCache.Get("topEntries")
-	if ok && p == "1" {
+	if ok && p == "0" {
 		e := data.([]Entry)
 		keywords = getLatestKeywords()
 		clearLatestKeywords()
