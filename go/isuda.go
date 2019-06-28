@@ -158,7 +158,6 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil && err != sql.ErrNoRows {
 			panicIf(err)
 		}
-		contents := []string{}
 		for rows.Next() {
 			e := Entry{}
 			err = rows.Scan(&e.ID, &e.AuthorID, &e.Keyword, &e.Description, &e.UpdatedAt, &e.CreatedAt)
