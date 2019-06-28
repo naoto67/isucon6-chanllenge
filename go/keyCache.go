@@ -34,6 +34,10 @@ func getKeywordsFromCache() []string {
 	keywords := []string{}
 	if ok {
 		keywords = data.([]string)
+	} else {
+		keywords, err := getKeywords()
+		panicIf(err)
+		keywordCache.Set("keywords", keywords, cache.DefaultExpiration)
 	}
 	return keywords
 }
