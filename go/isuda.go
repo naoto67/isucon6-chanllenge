@@ -130,11 +130,23 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 	data, ok := entryCache.Get("topEntries")
 	if ok && p == "1" {
 		e := data.([]Entry)
-		for i := 0; i < len(e); i++ {
-			e[i].Stars = make([]*Star, 0, 10)
-			entries = append(entries, &e[i])
-			map_entry[e[i].Keyword] = &e[i]
-			entry_keywords = append(entry_keywords, "\""+e[i].Keyword+"\"")
+		keywords = getLatestKeywords()
+		clearLatestKeywords()
+		if len(keywords) == 0 {
+			for i := 0; i < len(e); i++ {
+				e[i].Stars = make([]*Star, 0, 10)
+				entries = append(entries, &e[i])
+				map_entry[e[i].Keyword] = &e[i]
+				entry_keywords = append(entry_keywords, "\""+e[i].Keyword+"\"")
+			}
+		} else {
+			for i := 0; i < len(e); i++ {
+				e[i].Stars = make([]*Star, 0, 10)
+				e[i].Html = newHtmlify(w, r, e[i].Html, keywords)
+				entries = append(entries, &e[i])
+				map_entry[e[i].Keyword] = &e[i]
+				entry_keywords = append(entry_keywords, "\""+e[i].Keyword+"\"")
+			}
 		}
 	} else {
 		rows, err := db.Query(fmt.Sprintf(
@@ -241,6 +253,7 @@ func keywordPostHandler(w http.ResponseWriter, r *http.Request) {
 	content = newHtmlify(w, r, description, keywords)
 
 	addPage(Entry{ID: id, AuthorID: userID, Keyword: keyword, Description: description, UpdatedAt: t, CreatedAt: t, Html: content})
+	addLatestKeywords(keyword)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }
