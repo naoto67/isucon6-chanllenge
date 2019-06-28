@@ -217,7 +217,7 @@ func keywordPostHandler(w http.ResponseWriter, r *http.Request) {
 		badRequest(w)
 		return
 	}
-	userID := int(getContext(r, "user_id").(int64))
+	userID := getContext(r, "user_id").(int)
 	description := r.FormValue("description")
 
 	content := description + keyword
