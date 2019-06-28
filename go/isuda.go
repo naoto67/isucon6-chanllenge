@@ -17,6 +17,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
@@ -119,33 +120,44 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 	keywords, err := getKeywords()
 	panicIf(err)
 
-	rows, err := db.Query(fmt.Sprintf(
-		"SELECT id, author_id, keyword, description, updated_at, created_at FROM entry ORDER BY updated_at DESC LIMIT %d OFFSET %d",
-		perPage, perPage*(page-1),
-	))
-	if err != nil && err != sql.ErrNoRows {
-		panicIf(err)
-	}
-
 	entries := make([]*Entry, 0, 10)
 	// for stars query
 	entry_keywords := make([]string, 0, 10)
 	var map_entry map[string]*Entry
 	map_entry = map[string]*Entry{}
-	for rows.Next() {
-		e := Entry{}
-		err = rows.Scan(&e.ID, &e.AuthorID, &e.Keyword, &e.Description, &e.UpdatedAt, &e.CreatedAt)
-		panicIf(err)
-		e.Html = newHtmlify(w, r, e.Description, keywords)
-		entries = append(entries, &e)
-		e.Stars = make([]*Star, 0, 10)
 
-		map_entry[e.Keyword] = &e
-		entry_keywords = append(entry_keywords, "\""+e.Keyword+"\"")
+	data, ok := entryCache.Get("topEntries")
+	if ok {
+		e := data.([]Entry)
+		for _, v := range e {
+			v.Stars = make([]*Star, 0, 10)
+			entries = append(entries, &v)
+			map_entry[v.Keyword] = &v
+			entry_keywords = append(entry_keywords, "\""+v.Keyword+"\"")
+		}
+	} else {
+		rows, err := db.Query(fmt.Sprintf(
+			"SELECT id, author_id, keyword, description, updated_at, created_at FROM entry ORDER BY updated_at DESC LIMIT %d OFFSET %d",
+			perPage, perPage*(page-1),
+		))
+		if err != nil && err != sql.ErrNoRows {
+			panicIf(err)
+		}
+		for rows.Next() {
+			e := Entry{}
+			err = rows.Scan(&e.ID, &e.AuthorID, &e.Keyword, &e.Description, &e.UpdatedAt, &e.CreatedAt)
+			panicIf(err)
+			e.Html = newHtmlify(w, r, e.Description, keywords)
+			entries = append(entries, &e)
+			e.Stars = make([]*Star, 0, 10)
+
+			map_entry[e.Keyword] = &e
+			entry_keywords = append(entry_keywords, "\""+e.Keyword+"\"")
+		}
+		rows.Close()
+
 	}
-	rows.Close()
-
-	rows, err = db.Query(fmt.Sprintf("SELECT * FROM star WHERE keyword IN (%s)", strings.Join(entry_keywords, ",")))
+	rows, err := db.Query(fmt.Sprintf("SELECT * FROM star WHERE keyword IN (%s)", strings.Join(entry_keywords, ",")))
 	if err != nil && err != sql.ErrNoRows {
 		panicIf(err)
 	}
@@ -210,13 +222,23 @@ func keywordPostHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "SPAM!", http.StatusBadRequest)
 		return
 	}
-	_, err := db.Exec(`
+	t := time.Now()
+	res, err := db.Exec(`
 		INSERT INTO entry (author_id, keyword, description, created_at, updated_at)
 		VALUES (?, ?, ?, NOW(), NOW())
 		ON DUPLICATE KEY UPDATE
 		author_id = ?, description = ?, updated_at = NOW()
 	`, userID, keyword, description, userID, description)
 	panicIf(err)
+	id64, err := res.LastInsertId()
+	id := int(id64)
+	panicIf(err)
+
+	keywords, _ := getKeywords()
+	content = newHtmlify(w, r, description, keywords)
+
+	addPage(Entry{ID: id, AuthorID: userID, Keyword: keyword, Description: description, UpdatedAt: t, CreatedAt: t, Html: content})
+
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
