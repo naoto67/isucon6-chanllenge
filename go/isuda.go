@@ -213,6 +213,8 @@ func keywordPostHandler(w http.ResponseWriter, r *http.Request) {
 	`, userID, keyword, description, userID, description)
 	panicIf(err)
 
+	addKeyword(keyword)
+
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 

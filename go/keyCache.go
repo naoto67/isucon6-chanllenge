@@ -10,7 +10,7 @@ var (
 	keywordCache = cache.New(5*time.Minute, 10*time.Minute)
 )
 
-func addKeywords(key string) {
+func addKeyword(key string) {
 	data, ok := keywordCache.Get("keywords")
 	keywords := []string{}
 	if ok {
