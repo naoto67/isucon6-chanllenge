@@ -10,6 +10,7 @@ import (
 	"html"
 	"html/template"
 	"log"
+	"log/syslog"
 	"math"
 	"net/http"
 	"net/url"
@@ -130,17 +131,30 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 	data, ok := entryCache.Get("topEntries")
 	if ok && p == "1" {
 		e := data.([]Entry)
-		for i := 0; i < len(e); i++ {
-			e[i].Stars = make([]*Star, 0, 10)
-			entries = append(entries, &e[i])
-			map_entry[e[i].Keyword] = &e[i]
-			entry_keywords = append(entry_keywords, "\""+e[i].Keyword+"\"")
+		keywords = getLatestKeywords()
+		clearLatestKeywords()
+		if len(keywords) == 0 {
+			for i := 0; i < len(e); i++ {
+				e[i].Stars = make([]*Star, 0, 10)
+				entries = append(entries, &e[i])
+				map_entry[e[i].Keyword] = &e[i]
+				entry_keywords = append(entry_keywords, "\""+e[i].Keyword+"\"")
+			}
+		} else {
+			for i := 0; i < len(e); i++ {
+				e[i].Stars = make([]*Star, 0, 10)
+				e[i].Html = newHtmlify(w, r, e[i].Html, keywords)
+				entries = append(entries, &e[i])
+				map_entry[e[i].Keyword] = &e[i]
+				entry_keywords = append(entry_keywords, "\""+e[i].Keyword+"\"")
+			}
 		}
 	} else {
 		rows, err := db.Query(fmt.Sprintf(
 			"SELECT id, author_id, keyword, description, updated_at, created_at FROM entry ORDER BY updated_at DESC LIMIT %d OFFSET %d",
 			perPage, perPage*(page-1),
 		))
+		contents := make([]string, 0, 10)
 		if err != nil && err != sql.ErrNoRows {
 			panicIf(err)
 		}
@@ -165,7 +179,6 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		for i := 0; i < len(contents); i++ {
 			entries[i].Html = contents[i]
 		}
-
 	}
 	setTopPages(entries)
 
@@ -250,6 +263,7 @@ func keywordPostHandler(w http.ResponseWriter, r *http.Request) {
 	content = newHtmlify(w, r, description, keywords)
 
 	addPage(Entry{ID: id, AuthorID: userID, Keyword: keyword, Description: description, UpdatedAt: t, CreatedAt: t, Html: content})
+	addLatestKeywords(keyword)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -515,6 +529,12 @@ func main() {
 	}
 
 	store = sessions.NewCookieStore([]byte(sessionSecret))
+
+	logger, err := syslog.New(syslog.LOG_NOTICE|syslog.LOG_USER, "my-daemon")
+	if err != nil {
+		panic(err)
+	}
+	log.SetOutput(logger)
 
 	re = render.New(render.Options{
 		Directory: "views",
