@@ -10,21 +10,27 @@ var (
 	keywordCache = cache.New(5*time.Minute, 10*time.Minute)
 )
 
-func addLatestKeywords(key string) {
-	data, ok := keywordCache.Get("latestKeywords")
+func addKeywords(key string) {
+	data, ok := keywordCache.Get("keywords")
 	keywords := []string{}
 	if ok {
 		keywords = data.([]string)
 	}
 	keywords = append(keywords, key)
-	keywordCache.Set("latestKeywords", keywords, cache.DefaultExpiration)
+	keywordCache.Set("keywords", keywords, cache.DefaultExpiration)
 }
 
-func clearLatestKeywords() {
-	keywordCache.Delete("latestKeywords")
+func clearKeywords() {
+	keywordCache.Delete("keywords")
 }
-func getLatestKeywords() []string {
-	data, ok := keywordCache.Get("latestKeywords")
+
+func initKeywords() {
+	keywords, err := getKeywords()
+	panicIf(err)
+	keywordCache.Set("keywords", keywords, cache.DefaultExpiration)
+}
+func getKeywordsFromCache() []string {
+	data, ok := keywordCache.Get("keywords")
 	keywords := []string{}
 	if ok {
 		keywords = data.([]string)

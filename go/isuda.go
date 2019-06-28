@@ -63,6 +63,8 @@ func initializeHandler(w http.ResponseWriter, r *http.Request) {
 	panicIf(err)
 
 	initStars()
+	clearKeywords()
+	initKeywords()
 
 	re.JSON(w, http.StatusOK, map[string]string{"result": "ok"})
 }
@@ -119,8 +121,7 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	page, _ := strconv.Atoi(p)
 
-	keywords, err := getKeywords()
-	panicIf(err)
+	keywords := getKeywordsFromCache()
 
 	entries := make([]*Entry, 0, 10)
 
@@ -300,8 +301,7 @@ func keywordByKeywordHandler(w http.ResponseWriter, r *http.Request) {
 		notFound(w)
 		return
 	}
-	keywords, err := getKeywords()
-	panicIf(err)
+	keywords := getKeywordsFromCache()
 
 	e.Html = newHtmlify(w, r, e.Description, keywords)
 	e.Stars = loadStars(e.Keyword)
