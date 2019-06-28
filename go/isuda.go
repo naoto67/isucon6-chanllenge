@@ -100,8 +100,7 @@ func starsPostHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	_, err = db.Exec(`INSERT INTO star (keyword, user_name, created_at) VALUES (?, ?, NOW())`, keyword, user)
-	panicIf(err)
+	setStar(keyword, user)
 
 	re.JSON(w, http.StatusOK, map[string]string{"result": "ok"})
 }
@@ -135,14 +134,14 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		clearLatestKeywords()
 		if len(keywords) == 0 {
 			for i := 0; i < len(e); i++ {
-				e[i].Stars = make([]*Star, 0, 10)
+				e[i].Stars = loadStars(e[i].Keyword)
 				entries = append(entries, &e[i])
 				map_entry[e[i].Keyword] = &e[i]
 				entry_keywords = append(entry_keywords, "\""+e[i].Keyword+"\"")
 			}
 		} else {
 			for i := 0; i < len(e); i++ {
-				e[i].Stars = make([]*Star, 0, 10)
+				e[i].Stars = loadStars(e[i].Keyword)
 				e[i].Html = newHtmlify(w, r, e[i].Html, keywords)
 				entries = append(entries, &e[i])
 				map_entry[e[i].Keyword] = &e[i]
@@ -165,7 +164,7 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 			// e.Html = newHtmlify(w, r, e.Description, keywords)
 			contents = append(contents, e.Description)
 			entries = append(entries, &e)
-			e.Stars = make([]*Star, 0, 10)
+			e.Stars = loadStars(e.Keyword)
 
 			map_entry[e.Keyword] = &e
 			entry_keywords = append(entry_keywords, "\""+e.Keyword+"\"")
@@ -180,18 +179,6 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	setTopPages(entries)
-
-	rows, err := db.Query(fmt.Sprintf("SELECT * FROM star WHERE keyword IN (%s)", strings.Join(entry_keywords, ",")))
-	if err != nil && err != sql.ErrNoRows {
-		panicIf(err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		s := Star{}
-		err := rows.Scan(&s.ID, &s.Keyword, &s.UserName, &s.CreatedAt)
-		panicIf(err)
-		map_entry[s.Keyword].Stars = append(map_entry[s.Keyword].Stars, &s)
-	}
 
 	var totalEntries int
 	row := db.QueryRow(`SELECT COUNT(*) FROM entry`)
@@ -437,17 +424,8 @@ func htmlify(w http.ResponseWriter, r *http.Request, content string) string {
 func loadStars(keyword string) []*Star {
 
 	stars := make([]*Star, 0, 10)
-	rows, err := db.Query(`SELECT * FROM star WHERE keyword = ?`, keyword)
-	if err != nil && err != sql.ErrNoRows {
-		panicIf(err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		s := Star{}
-		err := rows.Scan(&s.ID, &s.Keyword, &s.UserName, &s.CreatedAt)
-		panicIf(err)
-		stars = append(stars, &s)
-	}
+
+	stars = getStars(keyword)
 
 	return stars
 }
