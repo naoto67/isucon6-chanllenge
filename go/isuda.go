@@ -157,6 +157,8 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		rows.Close()
 
 	}
+	setTopPages(entries)
+
 	rows, err := db.Query(fmt.Sprintf("SELECT * FROM star WHERE keyword IN (%s)", strings.Join(entry_keywords, ",")))
 	if err != nil && err != sql.ErrNoRows {
 		panicIf(err)
