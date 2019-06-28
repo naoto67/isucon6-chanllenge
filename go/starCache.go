@@ -10,6 +10,10 @@ var (
 	starCache = cache.New(5*time.Minute, 10*time.Minute)
 )
 
+func initStars() {
+	starCache.Flush()
+}
+
 func setStar(keyword, username string) {
 	data, ok := starCache.Get(keyword)
 	stars := make([]Star, 0, 5)

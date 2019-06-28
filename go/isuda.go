@@ -63,6 +63,8 @@ func initializeHandler(w http.ResponseWriter, r *http.Request) {
 	_, err = db.Exec("TRUNCATE star")
 	panicIf(err)
 
+	initStars()
+
 	re.JSON(w, http.StatusOK, map[string]string{"result": "ok"})
 }
 
