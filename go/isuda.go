@@ -129,11 +129,11 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 	data, ok := entryCache.Get("topEntries")
 	if ok && p == "1" {
 		e := data.([]Entry)
-		for _, v := range e {
-			v.Stars = make([]*Star, 0, 10)
-			entries = append(entries, &v)
-			map_entry[v.Keyword] = &v
-			entry_keywords = append(entry_keywords, "\""+v.Keyword+"\"")
+		for i := 0; i < len(e); i++ {
+			e[i].Stars = make([]*Star, 0, 10)
+			entries = append(entries, &e[i])
+			map_entry[e[i].Keyword] = &e[i]
+			entry_keywords = append(entry_keywords, "\""+e[i].Keyword+"\"")
 		}
 	} else {
 		rows, err := db.Query(fmt.Sprintf(
