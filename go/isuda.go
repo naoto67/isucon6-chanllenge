@@ -127,7 +127,7 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 	map_entry = map[string]*Entry{}
 
 	data, ok := entryCache.Get("topEntries")
-	if ok {
+	if ok && p == "1" {
 		e := data.([]Entry)
 		for _, v := range e {
 			v.Stars = make([]*Star, 0, 10)
