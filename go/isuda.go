@@ -122,6 +122,7 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 	page, _ := strconv.Atoi(p)
 
 	keywords := getKeywordsFromCache()
+	rep := getReplacer(r, keywords)
 
 	entries := make([]*Entry, 0, 10)
 
@@ -145,7 +146,7 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 	rows.Close()
 
 	mergedContents := strings.Join(contents, splitter)
-	mergedContents = newHtmlify(w, r, mergedContents, keywords)
+	mergedContents = newHtmlify(w, r, mergedContents, rep)
 	contents = strings.Split(mergedContents, splitter)
 	for i := 0; i < len(contents); i++ {
 		entries[i].Html = contents[i]
@@ -304,8 +305,9 @@ func keywordByKeywordHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	keywords := getKeywordsFromCache()
+	rep := getReplacer(r, keywords)
 
-	e.Html = newHtmlify(w, r, e.Description, keywords)
+	e.Html = newHtmlify(w, r, e.Description, rep)
 	e.Stars = loadStars(e.Keyword)
 
 	re.HTML(w, http.StatusOK, "keyword", struct {
