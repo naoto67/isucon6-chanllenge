@@ -10,6 +10,7 @@ import (
 	"html"
 	"html/template"
 	"log"
+	"log/syslog"
 	"math"
 	"net/http"
 	"net/url"
@@ -505,6 +506,12 @@ func main() {
 	}
 
 	store = sessions.NewCookieStore([]byte(sessionSecret))
+
+	logger, err := syslog.New(syslog.LOG_NOTICE|syslog.LOG_USER, "my-daemon")
+	if err != nil {
+		panic(err)
+	}
+	log.SetOutput(logger)
 
 	re = render.New(render.Options{
 		Directory: "views",
