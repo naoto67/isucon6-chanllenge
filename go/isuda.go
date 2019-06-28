@@ -94,13 +94,9 @@ func starsHandler(w http.ResponseWriter, r *http.Request) {
 func starsPostHandler(w http.ResponseWriter, r *http.Request) {
 	keyword := r.FormValue("keyword")
 	user := r.FormValue("user")
-	row := db.QueryRow("SELECT id FROM entry WHERE keyword = ?", keyword)
-	var id int
-	err := row.Scan(&id)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			notFound(w)
-		}
+	exists := getKeywordFromCache(keyword)
+	if !exists {
+		notFound(w)
 		return
 	}
 	setStar(keyword, user)

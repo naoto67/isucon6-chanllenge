@@ -41,3 +41,17 @@ func getKeywordsFromCache() []string {
 	}
 	return keywords
 }
+
+func getKeywordFromCache(key string) bool {
+	data, ok := keywordCache.Get("keywords")
+	keywords := []string{}
+	if ok {
+		keywords = data.([]string)
+		for _, v := range keywords {
+			if v == key {
+				return true
+			}
+		}
+	}
+	return false
+}
