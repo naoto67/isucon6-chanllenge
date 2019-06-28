@@ -25,19 +25,12 @@ func addPage(entry Entry) []Entry {
 	if ok {
 		e = data.([]Entry)
 		newEntries = append(newEntries, entry)
-		if len(e) == 10 {
-			for i := 0; i < len(e)-1; i++ {
-				newEntries = append(newEntries, e[i])
-			}
-		} else {
-			for i := 0; i < len(e); i++ {
-				newEntries = append(newEntries, e[i])
-			}
-		}
+		newEntries = append(newEntries, e[:9]...)
 	} else {
 		newEntries = []Entry{}
 		newEntries = append(newEntries, entry)
 	}
+	entryCache.Set("topEntries", newEntries, cache.DefaultExpiration)
 
 	return newEntries
 }
