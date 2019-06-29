@@ -2,10 +2,13 @@ package main
 
 import (
 	"fmt"
+	"html"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"runtime/debug"
+	"strings"
 )
 
 func prepareHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
@@ -53,6 +56,25 @@ func forbidden(w http.ResponseWriter) {
 
 func panicIf(err error) {
 	if err != nil {
+		log.Println(err)
 		panic(err)
 	}
+}
+
+func newHtmlify(w http.ResponseWriter, r *http.Request, content string, keywords []string) string {
+	if content == "" {
+		return ""
+	}
+	var rep_data []string
+	for _, v := range keywords {
+		u, err := r.URL.Parse(baseUrl.String() + "/keyword/" + pathURIEscape(v))
+		panicIf(err)
+		link := fmt.Sprintf("<a href=\"%s\">%s</a>", u, html.EscapeString(v))
+		rep_data = append(rep_data, v)
+		rep_data = append(rep_data, link)
+	}
+	replacer := strings.NewReplacer(rep_data...)
+	content = replacer.Replace(content)
+
+	return strings.Replace(content, "\n", "<br />\n", -1)
 }

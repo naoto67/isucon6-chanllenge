@@ -10,6 +10,7 @@ import (
 	"html"
 	"html/template"
 	"log"
+	"log/syslog"
 	"math"
 	"net/http"
 	"net/url"
@@ -18,7 +19,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Songmu/strrand"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -40,42 +40,68 @@ var (
 	store   *sessions.CookieStore
 
 	errInvalidUser = errors.New("Invalid User")
+	splitter       = "6eb3bc8ee3b13699ccd846"
 )
 
 func setName(w http.ResponseWriter, r *http.Request) error {
 	session := getSession(w, r)
-	userID, ok := session.Values["user_id"]
-	if !ok {
+	userID, id_ok := session.Values["user_id"]
+	userName, name_ok := session.Values["user_name"]
+	if !name_ok || !id_ok {
 		return nil
 	}
 	setContext(r, "user_id", userID)
-	row := db.QueryRow(`SELECT name FROM user WHERE id = ?`, userID)
-	user := User{}
-	err := row.Scan(&user.Name)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return errInvalidUser
-		}
-		panicIf(err)
-	}
-	setContext(r, "user_name", user.Name)
+	setContext(r, "user_name", userName)
 	return nil
-}
-
-func authenticate(w http.ResponseWriter, r *http.Request) error {
-	if u := getContext(r, "user_id"); u != nil {
-		return nil
-	}
-	return errInvalidUser
 }
 
 func initializeHandler(w http.ResponseWriter, r *http.Request) {
 	_, err := db.Exec(`DELETE FROM entry WHERE id > 7101`)
 	panicIf(err)
 
-	resp, err := http.Get(fmt.Sprintf("%s/initialize", isutarEndpoint))
+	_, err = db.Exec("TRUNCATE star")
 	panicIf(err)
-	defer resp.Body.Close()
+
+	initStars()
+
+	re.JSON(w, http.StatusOK, map[string]string{"result": "ok"})
+}
+
+func starsHandler(w http.ResponseWriter, r *http.Request) {
+	keyword := r.FormValue("keyword")
+	rows, err := db.Query(`SELECT * FROM star WHERE keyword = ?`, keyword)
+	if err != nil && err != sql.ErrNoRows {
+		panicIf(err)
+		return
+	}
+
+	stars := make([]Star, 0, 10)
+	for rows.Next() {
+		s := Star{}
+		err := rows.Scan(&s.ID, &s.Keyword, &s.UserName, &s.CreatedAt)
+		panicIf(err)
+		stars = append(stars, s)
+	}
+	rows.Close()
+
+	re.JSON(w, http.StatusOK, map[string][]Star{
+		"result": stars,
+	})
+}
+
+func starsPostHandler(w http.ResponseWriter, r *http.Request) {
+	keyword := r.FormValue("keyword")
+	user := r.FormValue("user")
+	row := db.QueryRow("SELECT id FROM entry WHERE keyword = ?", keyword)
+	var id int
+	err := row.Scan(&id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			notFound(w)
+		}
+		return
+	}
+	setStar(keyword, user)
 
 	re.JSON(w, http.StatusOK, map[string]string{"result": "ok"})
 }
@@ -93,23 +119,37 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	page, _ := strconv.Atoi(p)
 
+	keywords, err := getKeywords()
+	panicIf(err)
+
+	entries := make([]*Entry, 0, 10)
+
 	rows, err := db.Query(fmt.Sprintf(
-		"SELECT * FROM entry ORDER BY updated_at DESC LIMIT %d OFFSET %d",
+		"SELECT id, author_id, keyword, description, updated_at, created_at FROM entry ORDER BY updated_at DESC LIMIT %d OFFSET %d",
 		perPage, perPage*(page-1),
 	))
+	contents := make([]string, 0, 10)
 	if err != nil && err != sql.ErrNoRows {
 		panicIf(err)
 	}
-	entries := make([]*Entry, 0, 10)
 	for rows.Next() {
 		e := Entry{}
-		err := rows.Scan(&e.ID, &e.AuthorID, &e.Keyword, &e.Description, &e.UpdatedAt, &e.CreatedAt)
+		err = rows.Scan(&e.ID, &e.AuthorID, &e.Keyword, &e.Description, &e.UpdatedAt, &e.CreatedAt)
 		panicIf(err)
-		e.Html = htmlify(w, r, e.Description)
-		e.Stars = loadStars(e.Keyword)
+		// e.Html = newHtmlify(w, r, e.Description, keywords)
+		contents = append(contents, e.Description)
 		entries = append(entries, &e)
+		e.Stars = loadStars(e.Keyword)
 	}
 	rows.Close()
+
+	mergedContents := strings.Join(contents, splitter)
+	mergedContents = newHtmlify(w, r, mergedContents, keywords)
+	contents = strings.Split(mergedContents, splitter)
+	for i := 0; i < len(contents); i++ {
+		entries[i].Html = contents[i]
+	}
+	setTopPages(entries)
 
 	var totalEntries int
 	row := db.QueryRow(`SELECT COUNT(*) FROM entry`)
@@ -159,7 +199,8 @@ func keywordPostHandler(w http.ResponseWriter, r *http.Request) {
 	userID := getContext(r, "user_id").(int)
 	description := r.FormValue("description")
 
-	if isSpamContents(description) || isSpamContents(keyword) {
+	content := description + keyword
+	if isSpamContents(content) {
 		http.Error(w, "SPAM!", http.StatusBadRequest)
 		return
 	}
@@ -167,9 +208,10 @@ func keywordPostHandler(w http.ResponseWriter, r *http.Request) {
 		INSERT INTO entry (author_id, keyword, description, created_at, updated_at)
 		VALUES (?, ?, ?, NOW(), NOW())
 		ON DUPLICATE KEY UPDATE
-		author_id = ?, keyword = ?, description = ?, updated_at = NOW()
-	`, userID, keyword, description, userID, keyword, description)
+		author_id = ?, description = ?, updated_at = NOW()
+	`, userID, keyword, description, userID, description)
 	panicIf(err)
+
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
@@ -199,6 +241,7 @@ func loginPostHandler(w http.ResponseWriter, r *http.Request) {
 	panicIf(err)
 	session := getSession(w, r)
 	session.Values["user_id"] = user.ID
+	session.Values["user_name"] = user.Name
 	session.Save(r, w)
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -234,18 +277,9 @@ func registerPostHandler(w http.ResponseWriter, r *http.Request) {
 	userID := register(name, pw)
 	session := getSession(w, r)
 	session.Values["user_id"] = userID
+	session.Values["user_name"] = name
 	session.Save(r, w)
 	http.Redirect(w, r, "/", http.StatusFound)
-}
-
-func register(user string, pass string) int64 {
-	salt, err := strrand.RandomString(`....................`)
-	panicIf(err)
-	res, err := db.Exec(`INSERT INTO user (name, salt, password, created_at) VALUES (?, ?, ?, NOW())`,
-		user, salt, fmt.Sprintf("%x", sha1.Sum([]byte(salt+pass))))
-	panicIf(err)
-	lastInsertID, _ := res.LastInsertId()
-	return lastInsertID
 }
 
 func keywordByKeywordHandler(w http.ResponseWriter, r *http.Request) {
@@ -259,14 +293,17 @@ func keywordByKeywordHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	row := db.QueryRow(`SELECT * FROM entry WHERE keyword = ?`, keyword)
+	row := db.QueryRow(`SELECT id, author_id, keyword, description, updated_at, created_at FROM entry WHERE keyword = ?`, keyword)
 	e := Entry{}
 	err = row.Scan(&e.ID, &e.AuthorID, &e.Keyword, &e.Description, &e.UpdatedAt, &e.CreatedAt)
 	if err == sql.ErrNoRows {
 		notFound(w)
 		return
 	}
-	e.Html = htmlify(w, r, e.Description)
+	keywords, err := getKeywords()
+	panicIf(err)
+
+	e.Html = newHtmlify(w, r, e.Description, keywords)
 	e.Stars = loadStars(e.Keyword)
 
 	re.HTML(w, http.StatusOK, "keyword", struct {
@@ -296,7 +333,7 @@ func keywordByKeywordDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		badRequest(w)
 		return
 	}
-	row := db.QueryRow(`SELECT * FROM entry WHERE keyword = ?`, keyword)
+	row := db.QueryRow(`SELECT  id, author_id, keyword, description, updated_at, created_at FROM entry WHERE keyword = ?`, keyword)
 	e := Entry{}
 	err := row.Scan(&e.ID, &e.AuthorID, &e.Keyword, &e.Description, &e.UpdatedAt, &e.CreatedAt)
 	if err == sql.ErrNoRows {
@@ -346,18 +383,12 @@ func htmlify(w http.ResponseWriter, r *http.Request, content string) string {
 }
 
 func loadStars(keyword string) []*Star {
-	v := url.Values{}
-	v.Set("keyword", keyword)
-	resp, err := http.Get(fmt.Sprintf("%s/stars", isutarEndpoint) + "?" + v.Encode())
-	panicIf(err)
-	defer resp.Body.Close()
 
-	var data struct {
-		Result []*Star `json:result`
-	}
-	err = json.NewDecoder(resp.Body).Decode(&data)
-	panicIf(err)
-	return data.Result
+	stars := make([]*Star, 0, 10)
+
+	stars = getStars(keyword)
+
+	return stars
 }
 
 func isSpamContents(content string) bool {
@@ -437,6 +468,12 @@ func main() {
 
 	store = sessions.NewCookieStore([]byte(sessionSecret))
 
+	logger, err := syslog.New(syslog.LOG_NOTICE|syslog.LOG_USER, "my-daemon")
+	if err != nil {
+		panic(err)
+	}
+	log.SetOutput(logger)
+
 	re = render.New(render.Options{
 		Directory: "views",
 		Funcs: []template.FuncMap{
@@ -478,6 +515,10 @@ func main() {
 	k := r.PathPrefix("/keyword/{keyword}").Subrouter()
 	k.Methods("GET").HandlerFunc(myHandler(keywordByKeywordHandler))
 	k.Methods("POST").HandlerFunc(myHandler(keywordByKeywordDeleteHandler))
+
+	s := r.PathPrefix("/stars").Subrouter()
+	s.Methods("GET").HandlerFunc(myHandler(starsHandler))
+	s.Methods("POST").HandlerFunc(myHandler(starsPostHandler))
 
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
 	log.Fatal(http.ListenAndServe(":5000", r))
