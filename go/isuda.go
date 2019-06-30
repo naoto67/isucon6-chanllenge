@@ -211,6 +211,10 @@ func keywordPostHandler(w http.ResponseWriter, r *http.Request) {
 	panicIf(err)
 
 	addKeyword(keyword)
+	keywords := getKeywordsFromCache()
+	rep := getReplacer(r, keywords)
+	description = newHtmlify(w, r, description, rep)
+	setHtml(keyword, description)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }

@@ -34,3 +34,15 @@ func addPage(entry Entry) []Entry {
 
 	return newEntries
 }
+
+func setHtml(keyword, html string) {
+	entryCache.Set(keyword, html, cache.DefaultExpiration)
+}
+
+func getHtml(keyword string) (string, bool) {
+	data, ok := entryCache.Get(keyword)
+	if ok {
+		return data.(string), ok
+	}
+	return "", ok
+}
