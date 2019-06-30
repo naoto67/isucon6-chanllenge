@@ -98,4 +98,6 @@ func addReplacer(r *http.Request, keyword string) {
 	link := fmt.Sprintf("<a href=\"%s\">%s</a>", u, html.EscapeString(keyword))
 	rep_data = append(rep_data, keyword)
 	rep_data = append(rep_data, link)
+
+	keywordCache.Set("replacer", rep_data, cache.DefaultExpiration)
 }
