@@ -126,7 +126,6 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		"SELECT id, author_id, keyword, description, updated_at, created_at FROM entry ORDER BY updated_at DESC LIMIT %d OFFSET %d",
 		perPage, perPage*(page-1),
 	))
-	contents := make([]string, 0, 10)
 	if err != nil && err != sql.ErrNoRows {
 		panicIf(err)
 	}
@@ -134,20 +133,16 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 		e := Entry{}
 		err = rows.Scan(&e.ID, &e.AuthorID, &e.Keyword, &e.Description, &e.UpdatedAt, &e.CreatedAt)
 		panicIf(err)
-		// e.Html = newHtmlify(w, r, e.Description, keywords)
-		contents = append(contents, e.Description)
+		html, ok := getHtml(e.Keyword)
+		if !ok {
+			html = newHtmlify(w, r, e.Description, rep)
+		}
 		entries = append(entries, &e)
 		e.Stars = loadStars(e.Keyword)
+		e.Html = html
+		setHtml(e.Keyword, html)
 	}
 	rows.Close()
-
-	mergedContents := strings.Join(contents, splitter)
-	mergedContents = newHtmlify(w, r, mergedContents, rep)
-	contents = strings.Split(mergedContents, splitter)
-	for i := 0; i < len(contents); i++ {
-		entries[i].Html = contents[i]
-	}
-	setTopPages(entries)
 
 	var totalEntries int
 	row := db.QueryRow(`SELECT COUNT(*) FROM entry`)
