@@ -18,7 +18,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
@@ -101,7 +100,6 @@ func starsPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	go setStar(keyword, user)
-	time.Sleep(1 * time.Second)
 
 	re.JSON(w, http.StatusOK, map[string]string{"result": "ok"})
 }
@@ -207,11 +205,11 @@ func keywordPostHandler(w http.ResponseWriter, r *http.Request) {
 	`, userID, keyword, description, userID, description)
 	panicIf(err)
 
-	addKeyword(keyword)
 	keywords := getKeywordsFromCache()
 	rep := getReplacer(r, keywords)
 	description = newHtmlify(w, r, description, rep)
-	setHtml(keyword, description)
+	go setHtml(keyword, description)
+	go addKeyword(keyword)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }
