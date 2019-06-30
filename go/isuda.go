@@ -208,6 +208,7 @@ func keywordPostHandler(w http.ResponseWriter, r *http.Request) {
 	description = newHtmlify(w, r, description, rep)
 	go setHtml(keyword, description)
 	go addKeyword(keyword)
+	go addReplacer(r, keyword)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }

@@ -62,6 +62,9 @@ func getKeywordFromCache(key string) bool {
 
 func getReplacer(r *http.Request) []string {
 	keywords := getKeywordsFromCache()
+	if data, ok := keywordCache.Get("replacer"); ok {
+		return data.([]string)
+	}
 	rep_data := []string{
 		`&`, "&amp;",
 		`'`, "&#39;",
@@ -77,5 +80,22 @@ func getReplacer(r *http.Request) []string {
 		rep_data = append(rep_data, v)
 		rep_data = append(rep_data, link)
 	}
+
+	keywordCache.Set("replacer", rep_data, cache.DefaultExpiration)
+
 	return rep_data
+}
+
+func addReplacer(r *http.Request, keyword string) {
+	data, ok := keywordCache.Get("replacer")
+	rep_data := []string{}
+	if ok {
+		rep_data = data.([]string)
+	}
+	keyword = regexp.QuoteMeta(keyword)
+	u, err := r.URL.Parse(baseUrl.String() + "/keyword/" + pathURIEscape(keyword))
+	panicIf(err)
+	link := fmt.Sprintf("<a href=\"%s\">%s</a>", u, html.EscapeString(keyword))
+	rep_data = append(rep_data, keyword)
+	rep_data = append(rep_data, link)
 }
