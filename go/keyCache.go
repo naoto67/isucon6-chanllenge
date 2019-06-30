@@ -11,6 +11,7 @@ import (
 )
 
 var (
+	// keywordsとreplacerを配列でキャッシュ
 	keywordCache = cache.New(5*time.Minute, 10*time.Minute)
 )
 

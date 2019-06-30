@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	// keyword: starsを配列でキャッシュ
 	starCache = cache.New(5*time.Minute, 10*time.Minute)
 )
 
