@@ -56,36 +56,11 @@ func initializeHandler(w http.ResponseWriter, r *http.Request) {
 	_, err := db.Exec(`DELETE FROM entry WHERE id > 7101`)
 	panicIf(err)
 
-	_, err = db.Exec("TRUNCATE star")
-	panicIf(err)
-
 	initStars()
 	clearKeywords()
 	initKeywords()
 
 	re.JSON(w, http.StatusOK, map[string]string{"result": "ok"})
-}
-
-func starsHandler(w http.ResponseWriter, r *http.Request) {
-	keyword := r.FormValue("keyword")
-	rows, err := db.Query(`SELECT * FROM star WHERE keyword = ?`, keyword)
-	if err != nil && err != sql.ErrNoRows {
-		panicIf(err)
-		return
-	}
-
-	stars := make([]Star, 0, 10)
-	for rows.Next() {
-		s := Star{}
-		err := rows.Scan(&s.ID, &s.Keyword, &s.UserName, &s.CreatedAt)
-		panicIf(err)
-		stars = append(stars, s)
-	}
-	rows.Close()
-
-	re.JSON(w, http.StatusOK, map[string][]Star{
-		"result": stars,
-	})
 }
 
 func starsPostHandler(w http.ResponseWriter, r *http.Request) {
@@ -469,7 +444,6 @@ func main() {
 	k.Methods("POST").HandlerFunc(myHandler(keywordByKeywordDeleteHandler))
 
 	s := r.PathPrefix("/stars").Subrouter()
-	s.Methods("GET").HandlerFunc(myHandler(starsHandler))
 	s.Methods("POST").HandlerFunc(myHandler(starsPostHandler))
 
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
