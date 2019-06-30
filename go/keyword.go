@@ -1,8 +1,6 @@
 package main
 
-import (
-	"regexp"
-)
+import ()
 
 func getKeywords() ([]string, error) {
 	rows, err := db.Query(`
@@ -16,7 +14,7 @@ func getKeywords() ([]string, error) {
 		if err != nil {
 			return keywords, err
 		}
-		keywords = append(keywords, regexp.QuoteMeta(keyword))
+		keywords = append(keywords, keyword)
 	}
 	rows.Close()
 

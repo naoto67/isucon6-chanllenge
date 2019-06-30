@@ -117,8 +117,7 @@ func topHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	page, _ := strconv.Atoi(p)
 
-	keywords := getKeywordsFromCache()
-	rep := getReplacer(r, keywords)
+	rep := getReplacer(r)
 
 	entries := make([]*Entry, 0, 10)
 
@@ -205,8 +204,7 @@ func keywordPostHandler(w http.ResponseWriter, r *http.Request) {
 	`, userID, keyword, description, userID, description)
 	panicIf(err)
 
-	keywords := getKeywordsFromCache()
-	rep := getReplacer(r, keywords)
+	rep := getReplacer(r)
 	description = newHtmlify(w, r, description, rep)
 	go setHtml(keyword, description)
 	go addKeyword(keyword)
@@ -299,8 +297,7 @@ func keywordByKeywordHandler(w http.ResponseWriter, r *http.Request) {
 		notFound(w)
 		return
 	}
-	keywords := getKeywordsFromCache()
-	rep := getReplacer(r, keywords)
+	rep := getReplacer(r)
 
 	e.Html = newHtmlify(w, r, e.Description, rep)
 	e.Stars = loadStars(e.Keyword)
