@@ -7,7 +7,7 @@ func getKeywords() ([]string, error) {
 		SELECT keyword FROM entry ORDER BY len DESC
 	`)
 	panicIf(err)
-	keywords := make([]string, 0, 500)
+	keywords := make([]string, 0, 8000)
 	for rows.Next() {
 		var keyword string
 		err := rows.Scan(&keyword)

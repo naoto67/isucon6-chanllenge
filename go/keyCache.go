@@ -66,7 +66,8 @@ func getReplacer(r *http.Request) []string {
 	if data, ok := keywordCache.Get("replacer"); ok {
 		return data.([]string)
 	}
-	rep_data := []string{
+	rep_data := make([]string, 0, 18000)
+	rep_data = []string{
 		`&`, "&amp;",
 		`'`, "&#39;",
 		`<`, "&lt;",
